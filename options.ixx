@@ -83,6 +83,7 @@ export struct Options
     bool rings;
     int cdr_error_threshold;
     int scsi_timeout;
+    bool force_omnidrive;
 
 
     Options(int argc, const char *argv[])
@@ -127,6 +128,7 @@ export struct Options
         , rings(false)
         , cdr_error_threshold(16)
         , scsi_timeout(50000)
+        , force_omnidrive(false)
     {
         for(int i = 1; i < argc; ++i)
             arguments += str_quoted_if_space(argv[i]) + " ";
@@ -320,6 +322,8 @@ export struct Options
                         i_value = &cdr_error_threshold;
                     else if(key == "--scsi-timeout")
                         i_value = &scsi_timeout;
+                    else if(key == "--force-omnidrive")
+                        force_omnidrive = true;
                     // unknown option
                     else
                     {
@@ -463,6 +467,7 @@ export struct Options
         LOG("\t--rings                         \tenable filesystem based rings detection");
         LOG("\t--cdr-error-threshold=VALUE     \tmaximum number of trailing C2 errors allowed on a CD-R (default: {})", cdr_error_threshold);
         LOG("\t--scsi-timeout=VALUE            \tSCSI command timeout, milliseconds (default: {})", scsi_timeout);
+        LOG("\t--force-omnidrive               \tForce to be recognized as OmniDrive");
     }
 };
 

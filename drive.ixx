@@ -175,6 +175,7 @@ static const std::vector<DriveConfig> DRIVE_DATABASE =
     { "hp",       "BD-RE BH40N"      , "B7C6", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8C }, // TonyLizard
     { "HL-DT-ST", "BD-RE BH16NS40"   , "1.03", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8C }, // breversa
     { "BUFFALO" , "Optical Drive"    , "1.00", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8B }, // Low_Plankton_3329
+    { "BUFFALO" , "Optical Drive"    , "1.05", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8B },
     { "HL-DT-ST", "BD-RE WH16NS48"   , "1.D3", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8C }, // scsi-wuzzy
     { "HL-DT-ST", "BD-RE BP55EB40"   , "1.00", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK2B }, // AngelDevIndie
     // PATCHED
@@ -344,7 +345,7 @@ export DriveConfig drive_get_config(const DriveQuery &drive_query)
 
 
 export void drive_override_config(DriveConfig &drive_config, const std::string *type, const int *read_offset, const int *c2_shift, const int *pregap_start, const std::string *read_method,
-    const std::string *sector_order)
+    const std::string *sector_order, bool force_omnidrive)
 {
     if(type != nullptr)
         drive_config.type = string_to_enum(*type, TYPE_STRING);
@@ -363,6 +364,12 @@ export void drive_override_config(DriveConfig &drive_config, const std::string *
 
     if(sector_order != nullptr)
         drive_config.sector_order = string_to_enum(*sector_order, SECTOR_ORDER_STRING);
+
+    if(force_omnidrive)
+    {
+        static const std::string omnidrive_reserved5("OmniDrive\x1\0\x2", 12);
+        drive_config.reserved5 = omnidrive_reserved5;
+    }
 }
 
 

@@ -425,7 +425,7 @@ export int redumper(Options &options)
         // query/override drive configuration
         ctx.drive_config = drive_get_config(cmd_drive_query(*ctx.sptd));
         drive_override_config(ctx.drive_config, options.drive_type.get(), options.drive_read_offset.get(), options.drive_c2_shift.get(), options.drive_pregap_start.get(),
-            options.drive_read_method.get(), options.drive_sector_order.get());
+            options.drive_read_method.get(), options.drive_sector_order.get(), options.force_omnidrive);
 
         std::optional<GET_CONFIGURATION_FeatureCode_ProfileList> current_profile;
         if(aggregate.drive_ready)
