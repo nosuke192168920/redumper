@@ -175,6 +175,7 @@ static const std::vector<DriveConfig> DRIVE_DATABASE =
     { "hp",       "BD-RE BH40N"      , "B7C6", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8C }, // TonyLizard
     { "HL-DT-ST", "BD-RE BH16NS40"   , "1.03", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8C }, // breversa
     { "BUFFALO" , "Optical Drive"    , "1.00", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8B }, // Low_Plankton_3329
+    { "BUFFALO" , "Optical Drive"    , "1.05", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8B },
     { "HL-DT-ST", "BD-RE WH16NS48"   , "1.D3", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK8C }, // scsi-wuzzy
     { "HL-DT-ST", "BD-RE BP55EB40"   , "1.00", "", "",   +6,   0, -135, ReadMethod::BE, SectorOrder::DATA_C2_SUB, Type::MTK2B }, // AngelDevIndie
     // PATCHED
