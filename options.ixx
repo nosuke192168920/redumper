@@ -44,6 +44,7 @@ export struct Options
     std::unique_ptr<int> drive_pregap_start;
     std::unique_ptr<std::string> drive_read_method;
     std::unique_ptr<std::string> drive_sector_order;
+    bool auto_detect;
     std::unique_ptr<double> speed;
     int retries;
     bool refine_subchannel;
@@ -62,6 +63,7 @@ export struct Options
     bool plextor_leadin_force_store;
     bool mediatek_skip_leadout;
     int mediatek_leadout_retries;
+    bool generic_skip_leadin;
     bool kreon_partial_ss;
     bool dvd_raw;
     bool bd_raw;
@@ -85,6 +87,15 @@ export struct Options
     int scsi_timeout;
     bool force_omnidrive;
 
+    // built-in defaults for numeric options, shared by the constructor and printUsage() so help shows the compile-time default rather than an argv override
+    static constexpr int retries_default = 0;
+    static constexpr int skip_fill_default = 0x55;
+    static constexpr int plextor_leadin_retries_default = 4;
+    static constexpr int mediatek_leadout_retries_default = 32;
+    static constexpr int audio_silence_threshold_default = 32;
+    static constexpr int cdr_error_threshold_default = 16;
+    static constexpr int scsi_timeout_default = 50000;
+
 
     Options(int argc, const char *argv[])
         : help(false)
@@ -98,26 +109,28 @@ export struct Options
         , overwrite(false)
         , force_split(false)
         , leave_unchanged(false)
-        , retries(0)
+        , auto_detect(false)
+        , retries(retries_default)
         , refine_subchannel(false)
         , refine_sector_mode(false)
         , lba_end_by_subcode(false)
         , force_qtoc(false)
         , legacy_subs(false)
-        , skip_fill(0x55)
+        , skip_fill(skip_fill_default)
         , filesystem_trim(false)
         , plextor_skip_leadin(false)
-        , plextor_leadin_retries(4)
+        , plextor_leadin_retries(plextor_leadin_retries_default)
         , plextor_leadin_force_store(false)
         , mediatek_skip_leadout(false)
-        , mediatek_leadout_retries(32)
+        , mediatek_leadout_retries(mediatek_leadout_retries_default)
+        , generic_skip_leadin(false)
         , kreon_partial_ss(false)
         , dvd_raw(false)
         , bd_raw(false)
         , disable_cdtext(false)
         , correct_offset_shift(false)
         , offset_shift_relocate(false)
-        , audio_silence_threshold(32)
+        , audio_silence_threshold(audio_silence_threshold_default)
         , overread_leadout(false)
         , force_unscrambled(false)
         , force_refine(false)
@@ -126,8 +139,8 @@ export struct Options
         , drive_test_skip_cache_read(false)
         , skip_subcode_desync(false)
         , rings(false)
-        , cdr_error_threshold(16)
-        , scsi_timeout(50000)
+        , cdr_error_threshold(cdr_error_threshold_default)
+        , scsi_timeout(scsi_timeout_default)
         , force_omnidrive(false)
     {
         for(int i = 1; i < argc; ++i)
@@ -223,6 +236,8 @@ export struct Options
                         drive_sector_order = std::make_unique<std::string>();
                         s_value = drive_sector_order.get();
                     }
+                    else if(key == "--auto-detect")
+                        auto_detect = true;
                     else if(key == "--speed")
                     {
                         speed = std::make_unique<double>();
@@ -271,6 +286,8 @@ export struct Options
                         mediatek_skip_leadout = true;
                     else if(key == "--mediatek-leadout-retries")
                         i_value = &mediatek_leadout_retries;
+                    else if(key == "--generic-skip-leadin")
+                        generic_skip_leadin = true;
                     else if(key == "--kreon-partial-ss")
                         kreon_partial_ss = true;
                     else if(key == "--dvd-raw")
@@ -391,6 +408,9 @@ export struct Options
         LOG("\tflash::mt1959 \tflashes MT1959 drive firmware");
         LOG("\tflash::sd616  \tflashes SD-616F/T drive firmware");
         LOG("\tflash::plextor\tflashes PLEXTOR drive firmware");
+        LOG("\ttools::fixmsf       \trepairs sectors with invalid sync or MSF addresses");
+        LOG("\ttools::fixmsf::shift\treorders sectors using their MSF addresses");
+        LOG("\ttools::trim         \ttrims a raw CD image to its ISO9660 volume size");
         LOG("");
 
         LOG("OPTIONS:");
@@ -404,7 +424,7 @@ export struct Options
         LOG("\t--skeleton                      \tgenerate skeleton after dump");
         LOG("\t--drive=VALUE                   \tdrive to use, first available drive with disc, if not provided");
         LOG("\t--speed=VALUE                   \tdrive read speed, optimal drive speed will be used if not provided");
-        LOG("\t--retries=VALUE                 \tnumber of sector retries in case of SCSI/C2 error (default: {})", retries);
+        LOG("\t--retries=VALUE                 \tnumber of sector retries in case of SCSI/C2 error (default: {})", retries_default);
         LOG("\t--image-path=VALUE              \tdump files base directory");
         LOG("\t--image-name=VALUE              \tdump files prefix, autogenerated in dump mode if not provided");
         LOG("\t--overwrite                     \toverwrites previously generated dump files");
@@ -417,22 +437,23 @@ export struct Options
         LOG("\t--drive-pregap-start=VALUE      \toverride drive pre-gap start LBA");
         LOG("\t--drive-read-method=VALUE       \toverride drive read method, possible values: BE, D8, BE_CDDA");
         LOG("\t--drive-sector-order=VALUE      \toverride drive sector order, possible values: DATA_C2_SUB, DATA_SUB_C2, DATA_SUB, DATA_C2");
+        LOG("\t--auto-detect                   \tattempt to automatically detect drive sector order for generic drives");
         LOG("");
         LOG("\t(drive specific)");
         LOG("\t--plextor-skip-leadin           \tskip dumping lead-in using negative range");
-        LOG("\t--plextor-leadin-retries=VALUE  \tmaximum number of lead-in retries per session (default: {})", plextor_leadin_retries);
+        LOG("\t--plextor-leadin-retries=VALUE  \tmaximum number of lead-in retries per session (default: {})", plextor_leadin_retries_default);
         LOG("\t--plextor-leadin-force-store    \tstore unverified lead-in");
+        LOG("\t--mediatek-skip-leadout         \tskip extracting lead-out from drive cache");
+        LOG("\t--mediatek-leadout-retries      \tnumber of preceding lead-out sector reads to fill up the cache (default: {})", mediatek_leadout_retries_default);
+        LOG("\t--generic-skip-leadin           \tskip dumping lead-in for negative offset discs on generic drives");
         LOG("\t--kreon-partial-ss              \tget minimal security sector (fixes bad firmware)");
         LOG("\t--dvd-raw                       \tdump raw DVD sectors (OmniDrive)");
         LOG("\t--bd-raw                        \tdump raw BD sectors (OmniDrive)");
-
-        LOG("\t--mediatek-skip-leadout         \tskip extracting lead-out from drive cache");
-        LOG("\t--mediatek-leadout-retries      \tnumber of preceding lead-out sector reads to fill up the cache (default: {})", mediatek_leadout_retries);
         LOG("\t--disable-cdtext                \tdisable CD-TEXT reading");
         LOG("");
         LOG("\t(offset)");
         LOG("\t--force-offset=VALUE            \toverride offset autodetection and use supplied value");
-        LOG("\t--audio-silence-threshold=VALUE \tmaximum absolute sample value to treat it as silence (default: {})", audio_silence_threshold);
+        LOG("\t--audio-silence-threshold=VALUE \tmaximum absolute sample value to treat it as silence (default: {})", audio_silence_threshold_default);
         LOG("\t--correct-offset-shift          \tcorrect disc write offset shift");
         LOG("\t--offset-shift-relocate         \tdon't merge offset groups with non-matching LBA");
         LOG("");
@@ -441,7 +462,7 @@ export struct Options
         LOG("\t--leave-unchanged               \tdon't replace erroneous sectors with generated ones");
         LOG("\t--force-qtoc                    \tforce QTOC based track split");
         LOG("\t--legacy-subs                   \treplicate DIC style subchannel based track split");
-        LOG("\t--skip-fill=VALUE               \tfill byte value for skipped sectors (default: 0x{:02X})", skip_fill);
+        LOG("\t--skip-fill=VALUE               \tfill byte value for skipped sectors (default: 0x{:02X})", skip_fill_default);
         LOG("\t--filesystem-trim               \ttrim data track to filesystem size (ISO9660: all media, UDF: DVD and later)");
         LOG("");
         LOG("\t(drive test)");
@@ -465,8 +486,8 @@ export struct Options
         LOG("\t--force-flash                   \tskip drive vendor/model verification when flashing firmware (WARNING: can brick your drive)");
         LOG("\t--skip-subcode-desync           \tskip storing sectors with mismatching subcode Q absolute MSF");
         LOG("\t--rings                         \tenable filesystem based rings detection");
-        LOG("\t--cdr-error-threshold=VALUE     \tmaximum number of trailing C2 errors allowed on a CD-R (default: {})", cdr_error_threshold);
-        LOG("\t--scsi-timeout=VALUE            \tSCSI command timeout, milliseconds (default: {})", scsi_timeout);
+        LOG("\t--cdr-error-threshold=VALUE     \tmaximum number of trailing C2 errors allowed on a CD-R (default: {})", cdr_error_threshold_default);
+        LOG("\t--scsi-timeout=VALUE            \tSCSI command timeout, milliseconds (default: {})", scsi_timeout_default);
         LOG("\t--force-omnidrive               \tForce to be recognized as OmniDrive");
     }
 };

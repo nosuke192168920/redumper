@@ -35,13 +35,21 @@ include(CPack)
 # C/C++
 set(CMAKE_CXX_STANDARD 20)
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    option(REDUMPER_CLANG_USE_LIBCPP "Link to libc++ instead of system default" OFF)
+
+    if(REDUMPER_CLANG_USE_LIBCPP)
+        add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-stdlib=libc++>)
+        add_link_options(-stdlib=libc++)
+    endif()
+
+    add_link_options(${REDUMPER_CLANG_LINK_OPTIONS})
+elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     add_compile_options(-Wall -Wextra -Werror)
 
     # remove after https://gcc.gnu.org/bugzilla/show_bug.cgi?id=99426 is fixed
     add_compile_options(--param=ggc-min-expand=10000)
-endif()
-if(MSVC)
+elseif(MSVC)
     # build MT configuration by default
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -110,6 +118,7 @@ target_sources(redumper
     "crc/crc.ixx"
     "crc/crc16_gsm.ixx"
     "crc/crc32.ixx"
+    "drive/detect.ixx"
     "drive/flash_mt1959.ixx"
     "drive/flash_plextor.ixx"
     "drive/flash_sd616.ixx"
@@ -142,6 +151,7 @@ target_sources(redumper
     "filesystem/iso9660/iso9660_entry.ixx"
     "filesystem/iso9660/iso9660_map.ixx"
     "filesystem/udf/udf.ixx"
+    "filesystem/udf/udf_browser.ixx"
     "filesystem/udf/udf_defs.ixx"
     "hash/block_hasher.ixx"
     "hash/md5.ixx"
@@ -230,7 +240,8 @@ endif()
 target_link_libraries(redumper ${libs})
 
 if(REDUMPER_TARGET_LINUX)
-    target_link_options(redumper PRIVATE "-static")
+    set(REDUMPER_LINKER_FLAGS "-static" CACHE STRING "Linker flags")
+    target_link_options(redumper PRIVATE "${REDUMPER_LINKER_FLAGS}")
 endif()
 
 install(TARGETS redumper DESTINATION "bin")

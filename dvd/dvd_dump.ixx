@@ -808,7 +808,10 @@ export bool redumper_dump_dvd(Context &ctx, const Options &options, bool dump)
 
     std::vector<Range<int32_t>> protection;
 
-    bool omnidrive_firmware = is_omnidrive_firmware(ctx.drive_config) != std::nullopt;
+    auto omnidrive_version = is_omnidrive_firmware(ctx.drive_config);
+    if(omnidrive_version && *omnidrive_version == 0x00010003)
+        throw_line("unsupported OmniDrive version for DVD dumping, upgrade to {}", omnidrive_version_string(omnidrive_minimum_version()));
+    bool omnidrive_firmware = omnidrive_version != std::nullopt;
     bool kreon_firmware = is_kreon_firmware(ctx.drive_config);
     bool kreon_locked = false;
 
@@ -1139,7 +1142,7 @@ export bool redumper_dump_dvd(Context &ctx, const Options &options, bool dump)
     uint32_t refine_retries = options.retries ? options.retries : 1;
 
     FilesystemContext fs_ctx;
-    ROMEntry rom_entry(image_prefix + dump_get_config(ctx.disc_type, false).image_extension);
+    ROMEntry rom_entry(options.image_name + dump_get_config(ctx.disc_type, false).image_extension);
     bool rom_update = dump;
 
     SignalINT signal;
@@ -1390,7 +1393,7 @@ export bool redumper_dump_dvd(Context &ctx, const Options &options, bool dump)
         signal.raiseDefault();
 
     if(rom_update)
-        ctx.dat = std::vector<std::string>(1, rom_entry.xmlLine());
+        ctx.dat.emplace_back(rom_entry.xmlLine());
 
     return errors.scsi || errors.edc;
 }
