@@ -548,6 +548,7 @@ export struct INQUIRY_StandardData
     uint8_t reserved4[2];
     uint16_t version_descriptors[8];
     uint8_t reserved5[30];
+    uint8_t pad[24];
 };
 #pragma pack(pop)
 
