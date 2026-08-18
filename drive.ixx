@@ -368,7 +368,7 @@ export void drive_override_config(DriveConfig &drive_config, const std::string *
 
     if(force_omnidrive)
     {
-        static const std::string omnidrive_reserved5("OmniDrive\x1\0\x2", 12);
+        static const std::string omnidrive_reserved5("OmniDrive\x1\0\x4", 12);
         drive_config.reserved5 = omnidrive_reserved5;
     }
 }
